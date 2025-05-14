@@ -29,6 +29,7 @@
     
     ;initialize ball starting location
     AND R3, R3, #0
+    ST R3, SCORE
     ADD R3, R3, #2
     ST R3, BALL_X
     ST R3, BALL_Y
@@ -39,6 +40,7 @@
     JSR enable_int
 LOOP    
         JSR CLEAR
+        JSR DISPLAY_SCORE
         JSR PRINT_SCREEN
         JSR PRINT_BLOCK
         ;write subroutine here to update ball location, return -1 if game over
@@ -56,7 +58,7 @@ SLEEP   ADD R5, R5, #-1
 GAME_OVER
         LEA R0, GO_PROMPT
         PUTS
-
+        JSR DISPLAY_SCORE
         
     HALT
     
@@ -66,6 +68,7 @@ GO_PROMPT   .STRINGZ "\n\nGAME OVER\n\n"
 BALL_X  .BLKW 3
 BALL_Y  .BLKW 3
 BALL_DIR .BLKW 3
+
 
 STACK .FILL xFE00
 
@@ -140,6 +143,7 @@ PRINT_SCREEN
     ADD R6, R6, #-1
     STR R5, R6, #0
     
+    
     LEA R0, LINE
     PUTS
     LD R5, NUM_ROWS
@@ -212,7 +216,8 @@ WALL    .STRINGZ "|"
 BLANK   .STRINGZ " "
 NEWLINE .STRINGZ "\n"
 BALL    .STRINGZ "o"
-SCORE_PROMPT   .STRINGZ "SCORE: "
+SCORE   .BLKW 1
+
 
 BLANK_COUNT .FILL #24
 NUM_ROWS .FILL #9
@@ -336,10 +341,13 @@ RIGHT_CHECK .FILL #-21
 ;
 ;R1 - the ball x,y value
 ;R2 - score
+;R4 - player brick location
 ;
 ;***************************************************
 CHECK_GAME
 
+    ADD R6, R6, #-1
+    STR R2, R6, #0
     
     LD R1, BALL_Y 
     ADD R1, R1, #-1
@@ -352,14 +360,22 @@ CHECK_GAME
     ADD R1, R4, R1 ;if negative, check right brick bound
     BRp FLAG
     ADD R1, R1, #5 ; add brick width
-    BRzp EXIT_CHECK
+    BRn FLAG
+    LD R2, SCORE
+    ADD R2, R2, #1
+    ST R2, SCORE
+    BRnzp EXIT_CHECK
     
 FLAG
     AND R1, R1, #0
     ADD R1, R1, #-1
     
 EXIT_CHECK   
-    ;update score
+    
+    
+    LDR R2, R6, #0
+    ADD R6, R6, #1
+
     
     RET
 
@@ -373,7 +389,7 @@ EXIT_CHECK
 CLEAR
     LEA R0, BREAK
     PUTS
-    PUTS
+    ;PUTS
 
     RET
 BREAK    .STRINGZ "\n\n\n\n\n\n\n\n\n"
@@ -406,6 +422,80 @@ PRINT_BLOCK
     RET
 BLOCK    .STRINGZ "[~~~]\n"
 SPACER     .STRINGZ " "
+
+
+;********************DISPLAY_SCORE*********************
+;Displays the current score
+;
+;R0 - used for trap
+;R2 - used for the score
+;R3 - 
+;R5 - 
+;***************************************************
+DISPLAY_SCORE
+    ADD R6, R6, #-1
+    STR R2, R6, #0
+    ADD R6, R6, #-1
+    STR R3, R6, #0
+    ADD R6, R6, #-1
+    STR R5, R6, #0
+    ADD R6, R6, #-1
+    STR R0, R6, #0
+    
+    LEA R0, SCORE_PROMPT
+    PUTS
+    
+    AND R5, R5, #0 ; zero out 
+    LD R2, SCORE
+    
+    TENS
+    ADD R3, R2, #-10 ;check if greater than 10
+    BRn ONES ;skip if less than 10
+    ADD R5, R5, #1 ;increment tens counter
+    ADD R2, R2, #-10 ;decrement r2 by 10
+    BRnzp TENS
+    
+    
+    
+    ONES
+    LD R1, DECIMAL
+    LEA R0, STRINGNUM
+    ;if r5 is greater than 0, add to string for return value
+    ADD R3, R5, #0
+    BRz SKIP
+    ADD R3, R5, R1 ; convert to decimal
+    STR R3, R0, #0 ; store in string
+    ADD R0, R0, #1;increment pointer
+    
+    SKIP
+    ADD R3, R1, R2 ; convert to decimal
+    STR R3, R0, #0 ;store in string
+    
+    ; null terminate the string
+    ADD R0, R0, #1;increment pointer
+    AND R3, R3, #0
+    STR R3, R0, #0
+    
+    LEA R0, STRINGNUM
+    PUTS
+    LEA R0, NEWLINE
+    PUTS
+    
+    LDR R0, R6, #0
+    ADD R6, R6, #1
+    LDR R5, R6, #0
+    ADD R6, R6, #1
+    LDR R3, R6, #0
+    ADD R6, R6, #1
+    LDR R2, R6, #0
+    ADD R6, R6, #1
+    
+    RET
+
+SCORE_PROMPT   .STRINGZ "SCORE: "
+STRINGNUM    .BLKW 4
+DECIMAL .FILL #48
+
 
 
 .END
@@ -535,4 +625,4 @@ BLOCK_RIGHT
 
 RIGHT_LIMIT     .FILL #-20
     
-    .END   
+.END
