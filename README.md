@@ -28,7 +28,9 @@ Dont let the ball get past the brick at the bottom of the screen! Each successfu
 ## Screenshots
 
 Keeps track of score.
+
 ![Example GIF](./example.gif)
 
 Game includes a Game Over state.
+
 ![Game Over](./GO.jpg)
